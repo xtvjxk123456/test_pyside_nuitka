@@ -30,6 +30,7 @@ jobs:
         run: |
           # 注意：这里加入了对 Qt.py 兼容性的处理和 PySide6 插件
           python -m nuitka --standalone `
+            --assume-yes-for-downloads `
             --enable-plugin=pyside6 `
             --include-module=PySide6 `
             --windows-disable-console `
