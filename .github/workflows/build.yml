@@ -1,0 +1,47 @@
+name: Build PySide6 App with Nuitka
+
+on:
+  push:
+    tags:
+      - 'v*' # 当推送以 v 开头的标签时触发（如 v1.0.0）
+  workflow_dispatch: # 允许手动触发
+
+jobs:
+  build-windows:
+    runs-on: windows-2022 # 2025年推荐使用 windows-2022，预装了 MSVC 编译器
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # PySide6 和 Nuitka 在 3.11/3.12 下非常稳定
+          cache: 'pip' # 自动缓存依赖，加快后续运行速度
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install nuitka zstandard # zstandard 能加快 Nuitka 编译
+
+      - name: Build with Nuitka
+        run: |
+          # 注意：这里加入了对 Qt.py 兼容性的处理和 PySide6 插件
+          python -m nuitka --standalone `
+            --enable-plugin=pyside6 `
+            --include-module=PySide6 `
+            --windows-disable-console `
+            --output-dir=dist `
+            --show-progress `
+            --onefile-tempdir-spec="{TEMP}/your_app_cache" `
+            main.py
+          # 注：如果你坚持目录模式，移除上面的 onefile 相关参数即可
+          # 目录模式生成的文件在 dist/main.dist 文件夹中
+
+      - name: Archive Production Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binary
+          path: dist/main.dist/ # 对应 Nuitka 生成的目录模式产物
